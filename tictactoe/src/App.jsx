@@ -1,63 +1,76 @@
 import { useState } from 'react'
 import './css/App.css'
+import WinnerModal from './components/WinnerModal.jsx'
+import { TURNS } from './constants.js'
+import { checkWinner, checkEndGame } from './board'
+import confetti from 'canvas-confetti'
+import { Board } from './components/Board.jsx'
+import { Turns } from './components/Turns.jsx'
+import { saveGame, resetGame } from './saveGame.js'
 
-const TURNS = {
-  X: '❌',
-  O: '⭕'
-}
-
-const Square = ({ children, isSelected, updateBoard, index }) => {
-  const className = `square ${isSelected ? 'is-selected' : ''}`
-
-  const handleClick = () => {
-    updateBoard(index)
-  }
-
-  return (
-    <div className={className} onClick={handleClick}>
-      {children}
-    </div>
-  )
-}
 
 function App() {
-  const [turn, setTurn] = useState(TURNS.X)
-  const [board, setBoard] = useState(Array(9).fill(null))
+  const [turn, setTurn] = useState(() => {
+    const turnFromLocalStorage = window.localStorage.getItem('turn')
+    return turnFromLocalStorage ? turnFromLocalStorage : TURNS.X
+  })
+  const [board, setBoard] = useState(() => {
+    const boarFromLocalStorage = window.localStorage.getItem('board')
+    return boarFromLocalStorage ? JSON.parse(boarFromLocalStorage) : Array(9).fill(null)
+  })
+  const [winner, setWinner] = useState(null)
 
   const updateBoard = (index) => {
-    if (board[index]) return
+    // si ya tiene algo o hay un ganador
+    if (board[index] || winner) return
 
+    // actualizar tablero
     const newBoard = [...board]
     newBoard[index] = turn
     setBoard(newBoard)
 
+    // cambiar turno
     const newTurn = turn === TURNS.X ? TURNS.O : TURNS.X
     setTurn(newTurn)
+
+    // guardar juego
+    saveGame({
+      newBoard: newBoard,
+      newTurn: newTurn
+    })
+
+    // revisar si hay ganador
+    const newWinner = checkWinner(newBoard)
+    if (newWinner) {
+      confetti()
+      setWinner(newWinner)
+    } else if (checkEndGame(newBoard)) {
+      setWinner(false) // empate
+    }
+
+  }
+
+  const resetGame = () => {
+    setTurn(TURNS.X)
+    setBoard(Array(9).fill(null))
+    setWinner(null)
+
+    resetGame()
 
   }
 
   return (
     <main className='board'>
       <h1>Tic Tac Toe</h1>
-      <section className='game'>
-        {
-          board.map((_, index) => {
-            return (
-              <Square
-                key={index}
-                index={index}
-                updateBoard={updateBoard}>
-                {board[index]}
-              </Square>
-            )
-          })
-        }
-      </section>
-      <section className='turn'>
-        <Square isSelected={turn === TURNS.X} className>{TURNS.X}</Square>
-        <Square isSelected={turn === TURNS.O} className>{TURNS.O}</Square>
-      </section>
-    </main>
+      <button onClick={resetGame}>Reiniciar juego</button>
+
+      <Board board={board} updateBoard={updateBoard} />
+
+      <Turns turn={turn} />
+
+      <WinnerModal winner={winner} resetGame={resetGame} />
+
+    </main >
   )
 }
 
