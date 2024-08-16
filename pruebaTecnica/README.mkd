@@ -1,0 +1,7 @@
+# Prueba técnica
+
+Here is your key: 487d83e9
+
+Please append it to all of your API requests,
+
+OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=487d83e9
